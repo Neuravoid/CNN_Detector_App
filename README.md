@@ -52,7 +52,7 @@ docker run -d -p 8000:8000 -p 8501:8501 human-detector-app
 
 - **Streamlit Arayüzü:** Tarayıcınızdan uygulamanıza ulaşmak için:
 ```
-http://http://13.48.30.60:8501
+http://13.48.30.60:8501
 ```
 
 ---
