@@ -1,0 +1,18 @@
+# PyTorch ve torchvision (CPU uyumlu)
+torch==2.0.1 --extra-index-url https://download.pytorch.org/whl/cpu
+torchvision==0.15.2 --extra-index-url https://download.pytorch.org/whl/cpu
+
+# API ve Web Arayüzü için gerekli paketler
+fastapi
+uvicorn
+
+# Streamlit (UI için)
+streamlit
+Pillow
+requests
+
+# Gereksiz NumPy uyarılarından kaçınmak için eski versiyon
+numpy<2
+
+# FastAPI'nin dosya yükleme işlemi için
+python-multipart
