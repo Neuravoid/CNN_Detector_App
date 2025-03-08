@@ -1,6 +1,6 @@
 # 🧑‍💻 İnsan Tanıma Yapay Zekası (Human Detection AI)
 
-CNN (ResNet50) tabanlı, görüntülerden insan yüzü tanıyabilen makine öğrenmesi uygulaması.
+CNN (ResNet50) tabanlı, görüntülerden insan yüzü (Ön Yüz) tanıyabilen makine öğrenmesi uygulaması.
 
 ---
 
@@ -52,7 +52,8 @@ docker run -d -p 8000:8000 -p 8501:8501 human-detector-app
 
 - **Streamlit Arayüzü:** Tarayıcınızdan uygulamanıza ulaşmak için:
 ```
-http://13.48.30.60:8501
+http://51.21.193.154:8501/
+
 ```
 
 ---

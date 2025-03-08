@@ -6,45 +6,39 @@ from fastapi import FastAPI, File, UploadFile
 from PIL import Image
 import io
 import os
+import gc  # 🛠 Bellek Temizleme için
 
-# 🎯 Fine-Tuning Yapılmış Modeli Tanımla (train_model.py ile aynı yapı!)
-class ResNet50Classifier(nn.Module):
-    def __init__(self):
-        super(ResNet50Classifier, self).__init__()
-        self.model = models.resnet50(weights=None)  # Pretrained=False kullanıyoruz çünkü eğitilmiş modelin var!
-        
-        # Son 10 katmanı serbest bırak, geri kalanını dondur (Aynı şekilde eğittik!)
-        for param in list(self.model.parameters())[:-10]:
-            param.requires_grad = False
+# 🎯 Modeli Yükleme Fonksiyonu (Lazy Load)
+def load_model():
+    global model
+    if "model" not in globals():
+        class ResNet50Classifier(nn.Module):
+            def __init__(self):
+                super(ResNet50Classifier, self).__init__()
+                self.model = models.resnet50(weights=None)
+                for param in list(self.model.parameters())[:-10]:
+                    param.requires_grad = False
+                num_ftrs = self.model.fc.in_features
+                self.model.fc = nn.Sequential(
+                    nn.Linear(num_ftrs, 512),
+                    nn.ReLU(),
+                    nn.Dropout(0.5),
+                    nn.Linear(512, 256),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                    nn.Linear(256, 1)
+                )
+            def forward(self, x):
+                return self.model(x)
 
-        # Yeni Fully Connected Katmanı (train_model.py ile aynı!)
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Linear(num_ftrs, 512),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 1)  # Binary Classification için çıktı 1 nöron
-        )
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(BASE_DIR, "..", "model", "final_model.pth")
+        model = ResNet50Classifier()
+        model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")), strict=False)
+        model.eval()
+    return model
 
-    def forward(self, x):
-        return self.model(x)
-
-
-# 🔥 Eğitilmiş Modeli Yükle (final_model.pth)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "..", "model", "final_model.pth")
-model = ResNet50Classifier()
-
-# Eğitilmiş ağırlıkları yükle
-state_dict = torch.load(model_path, map_location=torch.device("cpu"))
-model.load_state_dict(state_dict, strict=False)  # ✅ strict=False: Fazla layer hatası engellenir
-
-model.eval()  # Modeli inference moduna al
-
-# 📸 Görüntü İşleme (train sırasında kullandığın transformları koruyoruz)
+# 📸 Görüntü İşleme
 transform = transforms.Compose([
     transforms.Resize((512, 512)),
     transforms.ToTensor(),
@@ -56,15 +50,25 @@ app = FastAPI()
 
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
-    image = Image.open(io.BytesIO(await file.read())).convert("RGB")
-    image = transform(image).unsqueeze(0)
+    try:
+        image = Image.open(io.BytesIO(await file.read())).convert("RGB")
+        image = transform(image).unsqueeze(0)
 
-    with torch.no_grad():
-        output = model(image)
-        confidence = torch.sigmoid(output).item()
+        model = load_model()  # 🛠 Lazy Load Model
+        with torch.no_grad():
+            output = model(image)
+            confidence = torch.sigmoid(output).item()
 
-    print(f"Model Çıktısı (Logit): {output.item()} - Olasılık (Sigmoid): {confidence}")
+        result = "Human" if confidence > 0.5 else "Not Human"
 
-    result = "Human" if confidence > 0.5 else "Not Human"
+    except Exception as e:
+        return {"error": str(e)}
+
+    finally:
+        # 🚀 RAM Temizleme İşlemi
+        del image
+        del output
+        del model  # 🛠 Model nesnesini silerek RAM tüketimini azalt
+        gc.collect()  # Belleği temizle
 
     return {"prediction": result, "confidence": confidence}

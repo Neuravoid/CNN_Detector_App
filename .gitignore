@@ -1,0 +1,4 @@
+# Python cache klasörlerini ve gereksiz dosyaları gizle
+__pycache__/
+*.pyc
+*.pyo

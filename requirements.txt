@@ -16,3 +16,5 @@ numpy<2
 
 # FastAPI'nin dosya yükleme işlemi için
 python-multipart
+
+psutil

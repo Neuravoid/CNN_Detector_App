@@ -2,6 +2,24 @@ import streamlit as st
 import requests
 from PIL import Image
 import io
+import time
+import threading
+import psutil  # 🛠 RAM Kullanımı Kontrolü için
+
+# 🚀 RAM Kullanımını Kontrol Ederek Cache Temizleme
+def clear_cache_if_needed():
+    while True:
+        ram_usage = psutil.virtual_memory().percent
+        if ram_usage > 85:  # RAM %85'i aşarsa cache temizle
+            st.cache_data.clear()
+            print("⚠️ RAM Yüksek! Cache Temizlendi!")
+        time.sleep(600)  # 10 dakikada bir kontrol et
+
+# 🛠 RAM Temizleme Thread'i (1 Kez Çalıştırılır)
+if "cache_clear_thread" not in st.session_state:
+    thread = threading.Thread(target=clear_cache_if_needed, daemon=True)
+    thread.start()
+    st.session_state["cache_clear_thread"] = True
 
 # 🎨 Streamlit Sayfa Tasarımı
 st.set_page_config(page_title="Human Detector AI", page_icon="🧑‍💻", layout="centered")
@@ -19,8 +37,9 @@ st.markdown(
 st.sidebar.header("⚙️ Ayarlar")
 st.sidebar.markdown("Bu uygulama bir **CNN Modeli** kullanmaktadır.")
 
-# 🌐 API URL (Canlı veya Lokal)
-API_URL = "http://13.48.30.60:8000/predict/"
+# 🌐 API URL'yi Dinamik Yap
+default_api_url = "http://51.21.193.154:8000/predict/"
+API_URL = st.sidebar.text_input("🌐 API URL", default_api_url)
 
 # 📤 Kullanıcıdan Görüntü Yüklemesini İste
 uploaded_file = st.file_uploader("📸 Bir resim yükleyin:", type=["jpg", "png", "jpeg"])
@@ -56,6 +75,10 @@ if uploaded_file is not None:
                 st.progress(confidence)
 
             except requests.exceptions.ConnectionError:
-                st.error("⚠️ API çalışmıyor! Lütfen önce API sunucusunu başlatın.")
+                st.error("🚨 API’ye bağlanılamıyor! Sunucu çalışıyor mu?")
+            except requests.exceptions.Timeout:
+                st.error("⏳ API çok yavaş yanıt veriyor! Sunucuyu kontrol edin.")
+            except requests.exceptions.RequestException as e:
+                st.error(f"⚠️ API Hatası: {e}")
             except Exception as e:
-                st.error(f"⚠️ Hata oluştu: {e}")
+                st.error(f"❌ Beklenmeyen bir hata oluştu: {str(e)}")
