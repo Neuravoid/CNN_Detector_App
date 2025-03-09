@@ -91,3 +91,7 @@ Sorularınız ve önerileriniz için iletişime geçebilirsiniz:
 - E-posta: `alkanumut848@gmail.com`
 
 ---
+
+## Lisans ve Kredi
+
+Bu proje, [MIT Lisansı](LICENSE) ile lisanslanmıştır. Bu yazılımı kullanırken, orijinal proje sahibinin telif hakkı ve lisans bilgilerini belirtmeyi unutmayın.
